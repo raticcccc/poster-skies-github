@@ -76,17 +76,20 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
       position:m.pos,
       rotation:m.rot,
       scale:`${m.scale} ${m.scale} ${m.scale}`,
+      visible:true,
       class:'interactive'
     },root);
 
     const model=make('a-entity',{
       'gltf-model':m.asset,
       rotation:'0 0 0',
+      visible:true,
       class:'interactive'
     },holder);
 
     model.addEventListener('model-loaded',()=>{
-      if(id==='terence') toast('3D FLOCK ONLINE · TAP A BIRD');
+      holder.setAttribute('visible',true);
+      if(id==='terence') toast('ALL FOUR BIRDS READY · TAP ANY BIRD');
     });
 
     holder.addEventListener('click',()=>{
@@ -112,14 +115,14 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
  function burst(){Object.entries(entities).forEach(([id])=>launch(id,true));toast('FLOCK BURST INITIATED');sound(180,.5,'sawtooth',.1)}
  function launch(id=selected,all=false){
   const v=entities[id];
-  if(!v || v.mode==='launched') return;
+  if(!v || v.mode!=='idle') return;
 
   v.mode='launched';
   v.life=0;
   v.velocity={
-    x:(Math.random()-.5)*.9,
-    y:.8+Math.random()*.65,
-    z:1.15+Math.random()*.5
+    x:(Math.random()-.5)*.65,
+    y:1.0+Math.random()*.45,
+    z:.05
   };
 
   v.holder.removeAttribute('animation__selected');
@@ -133,7 +136,7 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
   sound(all?240:340,.32,all?'square':'sawtooth',.1);
 
   for(let i=0;i<12;i++) spawnParticle(v.holder.object3D.position);
-  if(!all) toast(`${MODELS[id].name} LAUNCHED`);
+  if(!all) toast(`${MODELS[id].name} FLYING AWAY!`);
 }
  function spawnParticle(pos){if(particles.length>130)return;const p=make('a-sphere',{radius:.004+Math.random()*.006,color:['#58e8ff','#ffd45b','#ff725e','#ffffff'][Math.floor(Math.random()*4)],opacity:.9,position:`${pos.x} ${pos.y} ${pos.z}`},$('projectiles'));particles.push({el:p,life:.45+Math.random()*.5,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,vz:Math.random()*.5})}
  function update(t,dt){
@@ -147,14 +150,13 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
     p.x+=v.velocity.x*step;
     p.y+=v.velocity.y*step;
     p.z+=v.velocity.z*step;
-    v.velocity.y-=.55*step;
+    v.velocity.y-=.18*step;
 
-    if(v.life>1.65){
-      v.mode='idle';
+    if(v.life>1.75){
+      v.mode='gone';
       v.velocity=null;
       v.holder.removeAttribute('animation__selected');
-      v.holder.setAttribute('position',MODELS[id].pos);
-      v.holder.setAttribute('rotation',MODELS[id].rot);
+      v.holder.setAttribute('visible',false);
     }
   });
 
@@ -179,12 +181,14 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
     v.holder.removeAttribute('animation__selected');
     v.holder.setAttribute('position',MODELS[id].pos);
     v.holder.setAttribute('rotation',MODELS[id].rot);
+    v.holder.setAttribute('visible',true);
   });
+
   launches=0;
   $('score').textContent='000';
   particles.forEach(p=>p.el.remove());
   particles=[];
-  toast('FLOCK RESET · READY');
+  toast('ALL FOUR BIRDS RESTORED');
   sound(520,.15,'sine',.05);
 }
  anchor.addEventListener('targetFound',()=>{
