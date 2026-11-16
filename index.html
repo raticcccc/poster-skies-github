@@ -35,13 +35,24 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
  </a-assets>
  <a-camera position="0 0 0" look-controls="enabled:false" cursor="rayOrigin:mouse; fuse:false" raycaster="objects:.interactive; far:20"></a-camera>
  <a-entity id="posterAnchor" mindar-image-target="targetIndex:0">
-  <a-light type="ambient" intensity="1.25" color="#d9f5ff"></a-light><a-light type="directional" intensity="1.8" color="#fff0cf" position="-.5 1 1"></a-light><a-light type="point" intensity="1.4" distance="2.5" color="#38cfff" position="0 .2 .5"></a-light>
-  <a-entity id="worldFx"></a-entity><a-entity id="characters"></a-entity><a-entity id="projectiles"></a-entity><a-entity id="infoOrbs"></a-entity>
+  <a-entity id="arStage">
+   <a-light type="ambient" intensity="1.25" color="#d9f5ff"></a-light>
+   <a-light type="directional" intensity="1.8" color="#fff0cf" position="-.5 1 1"></a-light>
+   <a-light type="point" intensity="1.4" distance="2.5" color="#38cfff" position="0 .2 .5"></a-light>
+   <a-entity id="worldFx"></a-entity>
+   <a-entity id="characters"></a-entity>
+   <a-entity id="projectiles"></a-entity>
+   <a-entity id="infoOrbs"></a-entity>
+  </a-entity>
  </a-entity>
-</a-scene>
+ </a-scene>
 <script>
 (()=>{
- const $=id=>document.getElementById(id), scene=document.querySelector('a-scene'), anchor=$('posterAnchor');
+ const $=id=>document.getElementById(id),
+       scene=document.querySelector('a-scene'),
+       anchor=$('posterAnchor'),
+       stage=$('arStage');
+ let stageDetached=false;
  const MODELS={
   terence:{name:'TERENCE',asset:'#terenceModel',scale:.0022,pos:'-.32 -.06 .12',rot:'0 0 0',color:'#e94b50',info:'The heavyweight. Big energy, bigger launch.'},
   matilda:{name:'MATILDA',asset:'#matildaModel',scale:.00235,pos:'-.105 -.055 .12',rot:'0 0 0',color:'#fff0dc',info:'The sky guardian. Calm before the chaos.'},
@@ -57,16 +68,145 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
   for(let i=0;i<3;i++){make('a-torus',{radius:.12+i*.085,'radius-tubular':.0015,color:i===1?'#ffcf56':'#4ce4ff',opacity:.5,position:`0 0 ${-.04-i*.018}`,rotation:`${70+i*18} 0 ${i*24}`,'animation__spin':`property: rotation; to: ${70+i*18} 360 ${i*24}; dur: ${12000+i*4000}; loop: true`},fx)}
   for(let i=0;i<4;i++){make('a-sphere',{radius:.009,color:'#ffcf56',opacity:.8,position:`${-.42+i*.28} ${i%2?.24:-.24} .01`,'animation__pulse':'property: scale; to: 1.6 1.6 1.6; dir: alternate; dur: 900; loop: true'},$('infoOrbs'));}
  }
- function createCharacters(){const root=$('characters');Object.entries(MODELS).forEach(([id,m])=>{const holder=make('a-entity',{id:`character-${id}`,position:m.pos,rotation:m.rot,scale:`${m.scale} ${m.scale} ${m.scale}`,'class':'interactive','animation__hover':`property: position; to: ${parseFloat(m.pos.split(' ')[0])} ${parseFloat(m.pos.split(' ')[1])+.025} .12; dir: alternate; dur: 1500; loop: true; easing: easeInOutSine`},root);const model=make('a-entity',{'gltf-model':m.asset,rotation:'0 0 0'},holder);model.addEventListener('model-loaded',()=>{if(id==='terence')toast('3D FLOCK ONLINE · TAP LAUNCH');});holder.addEventListener('click',()=>select(id));entities[id]={holder,model,mode:'idle',velocity:null};});select(selected)}
- function select(id){selected=id;Object.entries(entities).forEach(([key,v])=>{v.holder.setAttribute('animation__selected',key===id?'property: rotation; to: 0 360 0; dur: 9000; loop: true':'property: rotation; to: 0 0 0; dur: 1');v.holder.setAttribute('visible',true)});document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.model===id));toast(`${MODELS[id].name} SELECTED · ${MODELS[id].info}`);sound(620,.12,'triangle',.04)}
+ function createCharacters(){
+  const root=$('characters');
+  Object.entries(MODELS).forEach(([id,m])=>{
+    const holder=make('a-entity',{
+      id:`character-${id}`,
+      position:m.pos,
+      rotation:m.rot,
+      scale:`${m.scale} ${m.scale} ${m.scale}`,
+      class:'interactive'
+    },root);
+
+    const model=make('a-entity',{
+      'gltf-model':m.asset,
+      rotation:'0 0 0',
+      class:'interactive'
+    },holder);
+
+    model.addEventListener('model-loaded',()=>{
+      if(id==='terence') toast('3D FLOCK ONLINE · TAP A BIRD');
+    });
+
+    holder.addEventListener('click',()=>{
+      select(id,false);
+      launch(id);
+    });
+
+    entities[id]={holder,model,mode:'idle',velocity:null};
+  });
+
+  select(selected,false);
+}
+ function select(id,notify=true){
+  selected=id;
+  document.querySelectorAll('.chip').forEach(b=>{
+    b.classList.toggle('active',b.dataset.model===id);
+  });
+  if(notify){
+    toast(`${MODELS[id].name} SELECTED · ${MODELS[id].info}`);
+    sound(620,.12,'triangle',.04);
+  }
+}
  function burst(){Object.entries(entities).forEach(([id])=>launch(id,true));toast('FLOCK BURST INITIATED');sound(180,.5,'sawtooth',.1)}
- function launch(id=selected,all=false){const v=entities[id];if(!v)return;v.mode='launched';v.life=0;v.velocity={x:(Math.random()-.5)*.9,y:.8+Math.random()*.65,z:1.15+Math.random()*.5};v.holder.setAttribute('animation__selected','property: rotation; to: 0 0 720; dur: 700; easing: easeInQuad');launches++;$('score').textContent=String(launches).padStart(3,'0');sound(all?240:340,.32,all?'square':'sawtooth',.1);for(let i=0;i<12;i++)spawnParticle(v.holder.object3D.position);if(!all)toast(`${MODELS[id].name} LAUNCHED`)}
+ function launch(id=selected,all=false){
+  const v=entities[id];
+  if(!v || v.mode==='launched') return;
+
+  v.mode='launched';
+  v.life=0;
+  v.velocity={
+    x:(Math.random()-.5)*.9,
+    y:.8+Math.random()*.65,
+    z:1.15+Math.random()*.5
+  };
+
+  v.holder.removeAttribute('animation__selected');
+  v.holder.setAttribute(
+    'animation__selected',
+    'property: rotation; to: 0 0 720; dur: 700; easing: easeInQuad'
+  );
+
+  launches++;
+  $('score').textContent=String(launches).padStart(3,'0');
+  sound(all?240:340,.32,all?'square':'sawtooth',.1);
+
+  for(let i=0;i<12;i++) spawnParticle(v.holder.object3D.position);
+  if(!all) toast(`${MODELS[id].name} LAUNCHED`);
+}
  function spawnParticle(pos){if(particles.length>130)return;const p=make('a-sphere',{radius:.004+Math.random()*.006,color:['#58e8ff','#ffd45b','#ff725e','#ffffff'][Math.floor(Math.random()*4)],opacity:.9,position:`${pos.x} ${pos.y} ${pos.z}`},$('projectiles'));particles.push({el:p,life:.45+Math.random()*.5,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,vz:Math.random()*.5})}
- function update(t,dt){const step=Math.min(dt||16,40)/1000;Object.values(entities).forEach(v=>{if(v.mode!=='launched')return;v.life+=step;const p=v.holder.object3D.position;p.x+=v.velocity.x*step;p.y+=v.velocity.y*step;p.z+=v.velocity.z*step;v.velocity.y-=.55*step;if(v.life>1.65){v.mode='idle';const m=MODELS[Object.keys(entities).find(k=>entities[k]===v)];v.holder.setAttribute('position',m.pos);v.holder.setAttribute('rotation',m.rot);v.holder.setAttribute('animation__selected','property: rotation; to: 0 360 0; dur: 16000; loop: true');}});
-  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=step;const p=q.el.object3D.position;p.x+=q.vx*step;p.y+=q.vy*step;p.z+=q.vz*step;q.el.object3D.scale.setScalar(Math.max(0,q.life));if(q.life<=0){q.el.remove();particles.splice(i,1)}}}
- function reset(){Object.entries(entities).forEach(([id,v])=>{v.mode='idle';v.holder.setAttribute('position',MODELS[id].pos);v.holder.setAttribute('rotation',MODELS[id].rot)});launches=0;$('score').textContent='000';particles.forEach(p=>p.el.remove());particles=[];toast('FLOCK RESET · READY');sound(520,.15,'sine',.05)}
- anchor.addEventListener('targetFound',()=>{found=true;$('status').textContent='POSTER LOCKED · AR WORLD ONLINE';$('reticle').style.opacity='0';toast('TARGET ACQUIRED · WELCOME TO THE FLOCK');sound(760,.22,'sine',.05)});
- anchor.addEventListener('targetLost',()=>{found=false;$('status').textContent='SIGNAL LOST · REACQUIRE THE POSTER';$('reticle').style.opacity='1'});
+ function update(t,dt){
+  const step=Math.min(dt||16,40)/1000;
+
+  Object.entries(entities).forEach(([id,v])=>{
+    if(v.mode!=='launched') return;
+
+    v.life+=step;
+    const p=v.holder.object3D.position;
+    p.x+=v.velocity.x*step;
+    p.y+=v.velocity.y*step;
+    p.z+=v.velocity.z*step;
+    v.velocity.y-=.55*step;
+
+    if(v.life>1.65){
+      v.mode='idle';
+      v.velocity=null;
+      v.holder.removeAttribute('animation__selected');
+      v.holder.setAttribute('position',MODELS[id].pos);
+      v.holder.setAttribute('rotation',MODELS[id].rot);
+    }
+  });
+
+  for(let i=particles.length-1;i>=0;i--){
+    const q=particles[i];
+    q.life-=step;
+    const p=q.el.object3D.position;
+    p.x+=q.vx*step;
+    p.y+=q.vy*step;
+    p.z+=q.vz*step;
+    q.el.object3D.scale.setScalar(Math.max(0,q.life));
+    if(q.life<=0){
+      q.el.remove();
+      particles.splice(i,1);
+    }
+  }
+}
+ function reset(){
+  Object.entries(entities).forEach(([id,v])=>{
+    v.mode='idle';
+    v.velocity=null;
+    v.holder.removeAttribute('animation__selected');
+    v.holder.setAttribute('position',MODELS[id].pos);
+    v.holder.setAttribute('rotation',MODELS[id].rot);
+  });
+  launches=0;
+  $('score').textContent='000';
+  particles.forEach(p=>p.el.remove());
+  particles=[];
+  toast('FLOCK RESET · READY');
+  sound(520,.15,'sine',.05);
+}
+ anchor.addEventListener('targetFound',()=>{
+  found=true;
+
+  if(!stageDetached){
+    anchor.object3D.updateMatrixWorld(true);
+    scene.object3D.attach(stage.object3D);
+    stageDetached=true;
+  }
+
+  $('status').textContent='FLOCK DEPLOYED · AR SCENE ACTIVE';
+  $('reticle').style.opacity='0';
+  toast('TARGET ACQUIRED · THE FLOCK IS HERE');
+  sound(760,.22,'sine',.05);
+});
+
+anchor.addEventListener('targetLost',()=>{
+  found=false;
+  $('status').textContent='POSTER OUT OF VIEW · FLOCK REMAINS VISIBLE';
+  $('reticle').style.opacity='0';
+});
  $('startBtn').addEventListener('click',async()=>{try{audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();$('boot').style.display='none';$('interface').style.display='block';$('status').textContent='CAMERA STARTING…';await scene.systems['mindar-image-system'].start();}catch(err){$('boot').style.display='grid';toast('CAMERA ERROR · CHECK PERMISSIONS AND HTTPS');console.error(err)}});
  document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>select(b.dataset.model)));$('launchBtn').addEventListener('click',()=>launch(selected));$('burstBtn').addEventListener('click',burst);$('resetBtn').addEventListener('click',reset);
  scene.addEventListener('loaded',()=>{addEnvironment();createCharacters();});
