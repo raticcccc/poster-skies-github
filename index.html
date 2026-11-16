@@ -9,7 +9,7 @@
 <script src="./lib/mindar-image-aframe.prod.js"></script>
 <style>
 :root{--cyan:#58e8ff;--gold:#ffd45b;--ink:#080e22;--glass:rgba(7,13,31,.72)}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}a-scene{position:fixed!important;inset:0;z-index:1}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}a-scene{position:fixed!important;inset:0;z-index:1;background:transparent}
 #boot{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 20%,#244c80 0,#111b3c 42%,#070b19 100%);text-align:center}
 .boot-card{width:min(520px,100%);padding:30px 24px;border:1px solid #ffffff26;border-radius:28px;background:linear-gradient(145deg,#ffffff15,#ffffff06);box-shadow:0 30px 100px #0009;backdrop-filter:blur(20px)}
 .kicker{font-size:10px;letter-spacing:.32em;color:var(--cyan);font-weight:900}.logo{font-size:clamp(38px,10vw,68px);line-height:.9;font-weight:1000;letter-spacing:-.07em;margin:15px 0 12px;text-shadow:0 5px 0 #163b65,0 12px 36px #0009}.logo span{color:var(--gold)}.boot-card p{max-width:360px;margin:14px auto 22px;color:#d7e8ff;line-height:1.55;font-size:14px}
@@ -26,7 +26,7 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
 <body>
 <div id="boot"><div class="boot-card"><div class="kicker">AN INTERACTIVE AUGMENTED REALITY EXPERIMENT</div><div class="logo">POSTER<br><span>SKIES</span></div><p>Bring the poster to life. Scan it, meet the characters, launch them into the sky and trigger a spectacular chain reaction.</p><button class="primary" id="startBtn">ENTER EXPERIENCE&nbsp; ↗</button><div class="fine">BEST EXPERIENCED ON MOBILE · ALLOW CAMERA ACCESS</div></div></div>
 <div id="interface"><div class="topbar"><div class="brand">POSTER SKIES<small>AR FIELD SYSTEM // 01</small></div><div class="stat"><b id="score">000</b><span>LAUNCHES</span></div></div><div id="status">SEARCHING FOR POSTER SIGNAL…</div><div id="reticle"></div><div class="bottom"><div class="model-strip" id="modelStrip"><button class="chip active" data-model="terence">TERENCE</button><button class="chip" data-model="matilda">MATILDA</button><button class="chip" data-model="jake">JAKE</button><button class="chip" data-model="pig">PIG</button></div><div class="actions"><button class="action ghost" id="resetBtn">↺ RESET</button><button class="action" id="burstBtn">✦ BURST</button><button class="action hot" id="launchBtn">LAUNCH SELECTED ↗</button></div></div><div id="toast"></div></div>
-<a-scene mindar-image="imageTargetSrc: ./assets/poster.mind; autoStart: false; uiScanning: no; uiLoading: no; filterMinCF: 0.0001; filterBeta: 0.001" renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true" color-space="sRGB" embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" loading-screen="enabled:false" shadow="type: pcfsoft" ar-director>
+<a-scene mindar-image="imageTargetSrc: ./assets/poster.mind; autoStart: false; uiScanning: no; uiLoading: no; filterMinCF: 0.0001; filterBeta: 0.001" renderer="alpha: true; colorManagement: true; physicallyCorrectLights: true; antialias: true" color-space="sRGB" embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" loading-screen="enabled:false" shadow="type: pcfsoft" ar-director>
  <a-assets>
   <a-asset-item id="terenceModel" src="./assets/models/terence.glb"></a-asset-item>
   <a-asset-item id="matildaModel" src="./assets/models/matilda.glb"></a-asset-item>
@@ -191,7 +191,21 @@ button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-ra
   toast('ALL FOUR BIRDS RESTORED');
   sound(520,.15,'sine',.05);
 }
- anchor.addEventListener('targetFound',()=>{
+ scene.addEventListener('arReady',()=>{
+  $('status').textContent='CAMERA READY · POINT AT THE POSTER';
+  $('reticle').style.opacity='1';
+  toast('CAMERA READY · SCAN THE POSTER');
+});
+
+scene.addEventListener('arError',(event)=>{
+  const reason=event.detail && event.detail.error ? event.detail.error : 'CAMERA ACCESS FAILED';
+  $('status').textContent='CAMERA ERROR · CHECK PERMISSIONS';
+  $('reticle').style.opacity='0';
+  toast('CAMERA ERROR · ALLOW CAMERA ACCESS');
+  console.error('MindAR arError:',event.detail || reason);
+});
+
+anchor.addEventListener('targetFound',()=>{
   found=true;
 
   if(!stageDetached){
@@ -211,7 +225,7 @@ anchor.addEventListener('targetLost',()=>{
   $('status').textContent='POSTER OUT OF VIEW · FLOCK REMAINS VISIBLE';
   $('reticle').style.opacity='0';
 });
- $('startBtn').addEventListener('click',async()=>{try{audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();$('boot').style.display='none';$('interface').style.display='block';$('status').textContent='CAMERA STARTING…';await scene.systems['mindar-image-system'].start();}catch(err){$('boot').style.display='grid';toast('CAMERA ERROR · CHECK PERMISSIONS AND HTTPS');console.error(err)}});
+ $('startBtn').addEventListener('click',async()=>{try{audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();$('boot').style.display='none';$('interface').style.display='block';$('status').textContent='CAMERA STARTING…';scene.systems['mindar-image-system'].start();}catch(err){$('boot').style.display='grid';toast('CAMERA ERROR · CHECK PERMISSIONS AND HTTPS');console.error(err)}});
  document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>select(b.dataset.model)));$('launchBtn').addEventListener('click',()=>launch(selected));$('burstBtn').addEventListener('click',burst);$('resetBtn').addEventListener('click',reset);
  scene.addEventListener('loaded',()=>{addEnvironment();createCharacters();});
  AFRAME.registerComponent('ar-director',{tick:function(time,delta){if(!lastTick)lastTick=time;update(time,time-lastTick);lastTick=time;}});
