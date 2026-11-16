@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080e22">
+<title>POSTER SKIES // AR EXPERIENCE</title>
+<script src="./lib/aframe.min.js"></script>
+<script src="./lib/mindar-image-aframe.prod.js"></script>
+<style>
+:root{--cyan:#58e8ff;--gold:#ffd45b;--ink:#080e22;--glass:rgba(7,13,31,.72)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}a-scene{position:fixed!important;inset:0;z-index:1}
+#boot{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 20%,#244c80 0,#111b3c 42%,#070b19 100%);text-align:center}
+.boot-card{width:min(520px,100%);padding:30px 24px;border:1px solid #ffffff26;border-radius:28px;background:linear-gradient(145deg,#ffffff15,#ffffff06);box-shadow:0 30px 100px #0009;backdrop-filter:blur(20px)}
+.kicker{font-size:10px;letter-spacing:.32em;color:var(--cyan);font-weight:900}.logo{font-size:clamp(38px,10vw,68px);line-height:.9;font-weight:1000;letter-spacing:-.07em;margin:15px 0 12px;text-shadow:0 5px 0 #163b65,0 12px 36px #0009}.logo span{color:var(--gold)}.boot-card p{max-width:360px;margin:14px auto 22px;color:#d7e8ff;line-height:1.55;font-size:14px}
+button{font:inherit;cursor:pointer;border:0}.primary{padding:14px 25px;border-radius:999px;color:#10172a;font-weight:950;letter-spacing:.06em;background:linear-gradient(110deg,#fff09b,#ffc83d);box-shadow:0 8px 28px #ffbf3150;min-width:180px}.fine{font-size:10px;color:#9fb5d3;margin-top:15px}
+#interface{position:fixed;inset:0;z-index:12;pointer-events:none;display:none;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.brand{font-weight:1000;letter-spacing:.12em;font-size:11px;text-shadow:0 2px 10px #000}.brand small{display:block;color:var(--cyan);font-size:8px;letter-spacing:.24em;margin-top:3px}.stat{border:1px solid #ffffff35;background:var(--glass);backdrop-filter:blur(12px);border-radius:14px;padding:8px 12px;text-align:right;box-shadow:0 8px 24px #0004}.stat b{display:block;font-size:20px;line-height:1}.stat span{font-size:8px;letter-spacing:.18em;color:#a9c8e9}
+#status{position:absolute;top:76px;left:50%;transform:translateX(-50%);white-space:nowrap;border:1px solid #ffffff2b;background:#071329b8;border-radius:999px;padding:8px 13px;font-size:10px;letter-spacing:.12em;color:#d8f8ff;backdrop-filter:blur(10px)}
+.bottom{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px;align-items:center}.model-strip{pointer-events:auto;display:flex;gap:7px;justify-content:center;flex-wrap:wrap;width:100%}.chip{border:1px solid #ffffff35;color:#e9f7ff;background:#071329d9;padding:8px 11px;border-radius:999px;font-size:10px;font-weight:800;backdrop-filter:blur(10px)}.chip.active{color:#10182a;background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 22px #58e8ff55}.actions{display:flex;gap:8px;pointer-events:auto}.action{padding:12px 17px;border-radius:14px;font-weight:950;font-size:11px;letter-spacing:.08em;color:#091328;background:#fff;box-shadow:0 8px 24px #0005}.action.hot{background:linear-gradient(110deg,#ffe99b,#ffb92d)}.action.ghost{background:#071329d9;color:#fff;border:1px solid #ffffff35}
+#toast{position:absolute;left:50%;bottom:155px;transform:translate(-50%,12px);opacity:0;transition:.25s;background:#061329e8;border:1px solid #58e8ff66;padding:10px 14px;border-radius:12px;font-size:11px;max-width:90%;text-align:center;box-shadow:0 10px 30px #0008}#toast.show{opacity:1;transform:translate(-50%,0)}
+#reticle{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;opacity:.0;transition:.3s}#reticle:after{content:'';width:42px;height:42px;border:1px solid #7beeff80;border-radius:50%;box-shadow:0 0 0 8px #7beeff12,0 0 30px #58e8ff55}
+@media(min-width:700px){.bottom{left:auto;right:20px;bottom:20px;align-items:flex-end}.model-strip{max-width:360px}.actions{justify-content:flex-end}#status{top:86px}}
+</style>
+</head>
+<body>
+<div id="boot"><div class="boot-card"><div class="kicker">AN INTERACTIVE AUGMENTED REALITY EXPERIMENT</div><div class="logo">POSTER<br><span>SKIES</span></div><p>Bring the poster to life. Scan it, meet the characters, launch them into the sky and trigger a spectacular chain reaction.</p><button class="primary" id="startBtn">ENTER EXPERIENCE&nbsp; ↗</button><div class="fine">BEST EXPERIENCED ON MOBILE · ALLOW CAMERA ACCESS</div></div></div>
+<div id="interface"><div class="topbar"><div class="brand">POSTER SKIES<small>AR FIELD SYSTEM // 01</small></div><div class="stat"><b id="score">000</b><span>LAUNCHES</span></div></div><div id="status">SEARCHING FOR POSTER SIGNAL…</div><div id="reticle"></div><div class="bottom"><div class="model-strip" id="modelStrip"><button class="chip active" data-model="terence">TERENCE</button><button class="chip" data-model="matilda">MATILDA</button><button class="chip" data-model="jake">JAKE</button><button class="chip" data-model="pig">PIG</button></div><div class="actions"><button class="action ghost" id="resetBtn">↺ RESET</button><button class="action" id="burstBtn">✦ BURST</button><button class="action hot" id="launchBtn">LAUNCH SELECTED ↗</button></div></div><div id="toast"></div></div>
+<a-scene mindar-image="imageTargetSrc: ./assets/poster.mind; autoStart: false; uiScanning: no; uiLoading: no; filterMinCF: 0.0001; filterBeta: 0.001" renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true" color-space="sRGB" embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" loading-screen="enabled:false" shadow="type: pcfsoft" ar-director>
+ <a-assets>
+  <a-asset-item id="terenceModel" src="./assets/models/terence.glb"></a-asset-item>
+  <a-asset-item id="matildaModel" src="./assets/models/matilda.glb"></a-asset-item>
+  <a-asset-item id="jakeModel" src="./assets/models/jake.glb"></a-asset-item>
+  <a-asset-item id="pigModel" src="./assets/models/pig.glb"></a-asset-item>
+ </a-assets>
+ <a-camera position="0 0 0" look-controls="enabled:false" cursor="rayOrigin:mouse; fuse:false" raycaster="objects:.interactive; far:20"></a-camera>
+ <a-entity id="posterAnchor" mindar-image-target="targetIndex:0">
+  <a-light type="ambient" intensity="1.25" color="#d9f5ff"></a-light><a-light type="directional" intensity="1.8" color="#fff0cf" position="-.5 1 1"></a-light><a-light type="point" intensity="1.4" distance="2.5" color="#38cfff" position="0 .2 .5"></a-light>
+  <a-entity id="worldFx"></a-entity><a-entity id="characters"></a-entity><a-entity id="projectiles"></a-entity><a-entity id="infoOrbs"></a-entity>
+ </a-entity>
+</a-scene>
+<script>
+(()=>{
+ const $=id=>document.getElementById(id), scene=document.querySelector('a-scene'), anchor=$('posterAnchor');
+ const MODELS={
+  terence:{name:'TERENCE',asset:'#terenceModel',scale:.0022,pos:'-.32 -.06 .12',rot:'0 0 0',color:'#e94b50',info:'The heavyweight. Big energy, bigger launch.'},
+  matilda:{name:'MATILDA',asset:'#matildaModel',scale:.00235,pos:'-.105 -.055 .12',rot:'0 0 0',color:'#fff0dc',info:'The sky guardian. Calm before the chaos.'},
+  jake:{name:'JAKE',asset:'#jakeModel',scale:.014,pos:'.115 -.055 .12',rot:'0 0 0',color:'#ff9d36',info:'A movie-star troublemaker, ready for takeoff.'},
+  pig:{name:'PIG',asset:'#pigModel',scale:.014,pos:'.33 -.055 .12',rot:'0 180 0',color:'#7bea9b',info:'The green troublemaker. Definitely up to something.'}
+ };
+ let selected='terence',launches=0,found=false,audio=null,entities={},particles=[],projectiles=[],lastTick=0;
+ function sound(freq=420,duration=.22,type='sawtooth',volume=.08){if(!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(60,freq*.35),audio.currentTime+duration);g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}
+ function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('show'),2100)}
+ function make(tag,attrs,parent){const e=document.createElement(tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));parent.appendChild(e);return e}
+ function addEnvironment(){const fx=$('worldFx');
+  for(let i=0;i<36;i++){let x=(Math.random()-.5)*1.05,y=(Math.random()-.5)*.62,z=-.02-Math.random()*.2;let p=make('a-sphere',{radius:.002+Math.random()*.003,color:i%3?'#a9f5ff':'#ffd76a',opacity:.35+Math.random()*.55,position:`${x} ${y} ${z}`,'animation__float':`property: position; to: ${x} ${y+.035+Math.random()*.04} ${z}; dir: alternate; dur: ${1800+Math.random()*2600}; loop: true; easing: easeInOutSine`},fx);}
+  for(let i=0;i<3;i++){make('a-torus',{radius:.12+i*.085,'radius-tubular':.0015,color:i===1?'#ffcf56':'#4ce4ff',opacity:.5,position:`0 0 ${-.04-i*.018}`,rotation:`${70+i*18} 0 ${i*24}`,'animation__spin':`property: rotation; to: ${70+i*18} 360 ${i*24}; dur: ${12000+i*4000}; loop: true`},fx)}
+  for(let i=0;i<4;i++){make('a-sphere',{radius:.009,color:'#ffcf56',opacity:.8,position:`${-.42+i*.28} ${i%2?.24:-.24} .01`,'animation__pulse':'property: scale; to: 1.6 1.6 1.6; dir: alternate; dur: 900; loop: true'},$('infoOrbs'));}
+ }
+ function createCharacters(){const root=$('characters');Object.entries(MODELS).forEach(([id,m])=>{const holder=make('a-entity',{id:`character-${id}`,position:m.pos,rotation:m.rot,scale:`${m.scale} ${m.scale} ${m.scale}`,'class':'interactive','animation__hover':`property: position; to: ${parseFloat(m.pos.split(' ')[0])} ${parseFloat(m.pos.split(' ')[1])+.025} .12; dir: alternate; dur: 1500; loop: true; easing: easeInOutSine`},root);const model=make('a-entity',{'gltf-model':m.asset,rotation:'0 0 0'},holder);model.addEventListener('model-loaded',()=>{if(id==='terence')toast('3D FLOCK ONLINE · TAP LAUNCH');});holder.addEventListener('click',()=>select(id));entities[id]={holder,model,mode:'idle',velocity:null};});select(selected)}
+ function select(id){selected=id;Object.entries(entities).forEach(([key,v])=>{v.holder.setAttribute('animation__selected',key===id?'property: rotation; to: 0 360 0; dur: 9000; loop: true':'property: rotation; to: 0 0 0; dur: 1');v.holder.setAttribute('visible',true)});document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.model===id));toast(`${MODELS[id].name} SELECTED · ${MODELS[id].info}`);sound(620,.12,'triangle',.04)}
+ function burst(){Object.entries(entities).forEach(([id])=>launch(id,true));toast('FLOCK BURST INITIATED');sound(180,.5,'sawtooth',.1)}
+ function launch(id=selected,all=false){const v=entities[id];if(!v)return;v.mode='launched';v.life=0;v.velocity={x:(Math.random()-.5)*.9,y:.8+Math.random()*.65,z:1.15+Math.random()*.5};v.holder.setAttribute('animation__selected','property: rotation; to: 0 0 720; dur: 700; easing: easeInQuad');launches++;$('score').textContent=String(launches).padStart(3,'0');sound(all?240:340,.32,all?'square':'sawtooth',.1);for(let i=0;i<12;i++)spawnParticle(v.holder.object3D.position);if(!all)toast(`${MODELS[id].name} LAUNCHED`)}
+ function spawnParticle(pos){if(particles.length>130)return;const p=make('a-sphere',{radius:.004+Math.random()*.006,color:['#58e8ff','#ffd45b','#ff725e','#ffffff'][Math.floor(Math.random()*4)],opacity:.9,position:`${pos.x} ${pos.y} ${pos.z}`},$('projectiles'));particles.push({el:p,life:.45+Math.random()*.5,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,vz:Math.random()*.5})}
+ function update(t,dt){const step=Math.min(dt||16,40)/1000;Object.values(entities).forEach(v=>{if(v.mode!=='launched')return;v.life+=step;const p=v.holder.object3D.position;p.x+=v.velocity.x*step;p.y+=v.velocity.y*step;p.z+=v.velocity.z*step;v.velocity.y-=.55*step;if(v.life>1.65){v.mode='idle';const m=MODELS[Object.keys(entities).find(k=>entities[k]===v)];v.holder.setAttribute('position',m.pos);v.holder.setAttribute('rotation',m.rot);v.holder.setAttribute('animation__selected','property: rotation; to: 0 360 0; dur: 16000; loop: true');}});
+  for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.life-=step;const p=q.el.object3D.position;p.x+=q.vx*step;p.y+=q.vy*step;p.z+=q.vz*step;q.el.object3D.scale.setScalar(Math.max(0,q.life));if(q.life<=0){q.el.remove();particles.splice(i,1)}}}
+ function reset(){Object.entries(entities).forEach(([id,v])=>{v.mode='idle';v.holder.setAttribute('position',MODELS[id].pos);v.holder.setAttribute('rotation',MODELS[id].rot)});launches=0;$('score').textContent='000';particles.forEach(p=>p.el.remove());particles=[];toast('FLOCK RESET · READY');sound(520,.15,'sine',.05)}
+ anchor.addEventListener('targetFound',()=>{found=true;$('status').textContent='POSTER LOCKED · AR WORLD ONLINE';$('reticle').style.opacity='0';toast('TARGET ACQUIRED · WELCOME TO THE FLOCK');sound(760,.22,'sine',.05)});
+ anchor.addEventListener('targetLost',()=>{found=false;$('status').textContent='SIGNAL LOST · REACQUIRE THE POSTER';$('reticle').style.opacity='1'});
+ $('startBtn').addEventListener('click',async()=>{try{audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();$('boot').style.display='none';$('interface').style.display='block';$('status').textContent='CAMERA STARTING…';await scene.systems['mindar-image-system'].start();}catch(err){$('boot').style.display='grid';toast('CAMERA ERROR · CHECK PERMISSIONS AND HTTPS');console.error(err)}});
+ document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>select(b.dataset.model)));$('launchBtn').addEventListener('click',()=>launch(selected));$('burstBtn').addEventListener('click',burst);$('resetBtn').addEventListener('click',reset);
+ scene.addEventListener('loaded',()=>{addEnvironment();createCharacters();});
+ AFRAME.registerComponent('ar-director',{tick:function(time,delta){if(!lastTick)lastTick=time;update(time,time-lastTick);lastTick=time;}});
+})();
+</script>
+</body></html>
