@@ -209,9 +209,14 @@ anchor.addEventListener('targetFound',()=>{
   found=true;
 
   if(!stageDetached){
-    anchor.object3D.updateMatrixWorld(true);
-    scene.object3D.attach(stage.object3D);
-    stageDetached=true;
+    // MindAR emits targetFound before it writes the new target matrix.
+    // Defer one frame so the anchor has its detected world transform first.
+    requestAnimationFrame(()=>{
+      if(stageDetached) return;
+      anchor.object3D.updateMatrixWorld(true);
+      scene.object3D.attach(stage.object3D);
+      stageDetached=true;
+    });
   }
 
   $('status').textContent='FLOCK DEPLOYED · AR SCENE ACTIVE';
